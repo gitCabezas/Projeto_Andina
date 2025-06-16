@@ -1,5 +1,7 @@
 # Projeto_Andina
 
+Objetivos iniciais do projeto: Criar um sistema para controle de Receitas.
+
 Tecnologias utilizadas por enqaunto:
 - Vite, para a estrutura geral do front
 - React, como framework do front
