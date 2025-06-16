@@ -1,0 +1,499 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== MODELOS DE USUÁRIOS E AUTENTICAÇÃO =====
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      UserRole @default(OPERATOR)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  createdRecipes     Recipe[]           @relation("RecipeCreator")
+  approvedRecipes    Recipe[]           @relation("RecipeApprover")
+  productionRecords  ProductionRecord[]
+  qualityControls    QualityControl[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  OPERATOR
+  SUPERVISOR
+  MANAGER
+  ADMIN
+}
+
+// ===== MODELOS DE CADASTROS BASE =====
+
+model Client {
+  id          String  @id @default(cuid())
+  name        String
+  document    String  @unique // CNPJ ou CPF
+  email       String?
+  phone       String?
+  address     String?
+  observations String?
+  active      Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  orders Order[]
+  colors Color[]
+
+  @@map("clients")
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  document  String   @unique
+  email     String?
+  phone     String?
+  address   String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  rawMaterials RawMaterial[]
+  dyes         Dye[]
+  chemicals    Chemical[]
+
+  @@map("suppliers")
+}
+
+model RawMaterial {
+  id             String           @id @default(cuid())
+  name           String
+  type           RawMaterialType
+  composition    String? // Ex: 100% Algodão, 50% Poliéster + 50% Algodão
+  weight         Float? // Gramatura
+  width          Float? // Largura em cm
+  supplierId     String
+  currentStock   Float            @default(0)
+  minimumStock   Float            @default(0)
+  unitPrice      Float?
+  observations   String?
+  active         Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relacionamentos
+  supplier       Supplier         @relation(fields: [supplierId], references: [id])
+  stockMovements StockMovement[]
+  recipeItems    RecipeItem[]
+  orders         Order[]
+
+  @@map("raw_materials")
+}
+
+enum RawMaterialType {
+  COTTON
+  POLYESTER
+  VISCOSE
+  LYCRA
+  LINEN
+  SILK
+  MIXED
+}
+
+model Dye {
+  id              String      @id @default(cuid())
+  name            String
+  commercialCode  String      @unique
+  type            DyeType
+  brand           String
+  concentration   Float // Percentual
+  expirationDate  DateTime?
+  supplierId      String
+  currentStock    Float       @default(0)
+  minimumStock    Float       @default(0)
+  unitPrice       Float?
+  safetyDataSheet String? // URL do arquivo
+  observations    String?
+  active          Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relacionamentos
+  supplier        Supplier         @relation(fields: [supplierId], references: [id])
+  stockMovements  StockMovement[]
+  recipeItems     RecipeItem[]
+  colorFormulas   ColorFormula[]
+
+  @@map("dyes")
+}
+
+enum DyeType {
+  REACTIVE
+  DIRECT
+  DISPERSE
+  ACID
+  BASIC
+  VAT
+}
+
+model Chemical {
+  id              String      @id @default(cuid())
+  name            String
+  function        ChemicalFunction
+  concentration   Float?
+  ph              Float?
+  supplierId      String
+  currentStock    Float       @default(0)
+  minimumStock    Float       @default(0)
+  unitPrice       Float?
+  safetyDataSheet String? // URL do arquivo
+  expirationDate  DateTime?
+  observations    String?
+  active          Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relacionamentos
+  supplier        Supplier         @relation(fields: [supplierId], references: [id])
+  stockMovements  StockMovement[]
+  recipeItems     RecipeItem[]
+
+  @@map("chemicals")
+}
+
+enum ChemicalFunction {
+  DEGREASING
+  BLEACHING
+  NEUTRALIZER
+  SOFTENER
+  FIXING_AGENT
+  WETTING_AGENT
+  LEVELING_AGENT
+  SALT
+  SODA_ASH
+  ACETIC_ACID
+}
+
+model Color {
+  id           String   @id @default(cuid())
+  name         String
+  pantoneCode  String?
+  rgbCode      String? // Ex: #FF5733
+  clientId     String
+  clientRef    String? // Referência do cliente
+  observations String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relacionamentos
+  client       Client         @relation(fields: [clientId], references: [id])
+  formulas     ColorFormula[]
+  orders       Order[]
+
+  @@unique([clientId, name])
+  @@map("colors")
+}
+
+model ColorFormula {
+  id          String   @id @default(cuid())
+  colorId     String
+  dyeId       String
+  percentage  Float // Percentual do corante na fórmula
+  createdAt   DateTime @default(now())
+
+  // Relacionamentos
+  color Color @relation(fields: [colorId], references: [id])
+  dye   Dye   @relation(fields: [dyeId], references: [id])
+
+  @@unique([colorId, dyeId])
+  @@map("color_formulas")
+}
+
+// ===== MODELOS DE RECEITUÁRIOS =====
+
+model Recipe {
+  id              String       @id @default(cuid())
+  name            String
+  version         String       @default("1.0")
+  colorId         String
+  rawMaterialId   String
+  batchWeight     Float // Peso do lote em kg
+  liquorRatio     String // Relação de banho (ex: 1:10)
+  totalTime       Int? // Tempo total em minutos
+  observations    String?
+  status          RecipeStatus @default(DRAFT)
+  createdById     String
+  approvedById    String?
+  approvedAt      DateTime?
+  active          Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relacionamentos
+  color           Color              @relation(fields: [colorId], references: [id])
+  rawMaterial     RawMaterial        @relation(fields: [rawMaterialId], references: [id])
+  createdBy       User               @relation("RecipeCreator", fields: [createdById], references: [id])
+  approvedBy      User?              @relation("RecipeApprover", fields: [approvedById], references: [id])
+  items           RecipeItem[]
+  processes       RecipeProcess[]
+  productions     ProductionRecord[]
+
+  @@map("recipes")
+}
+
+enum RecipeStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  IN_USE
+  DISCONTINUED
+}
+
+model RecipeItem {
+  id            String   @id @default(cuid())
+  recipeId      String
+  itemType      ItemType
+  rawMaterialId String?
+  dyeId         String?
+  chemicalId    String?
+  quantity      Float // Quantidade em gramas ou ml
+  unit          String // g, ml, kg, l
+  percentage    Float? // Percentual sobre o peso do tecido
+  processStage  ProcessStage
+  additionTime  Int? // Tempo de adição em minutos
+  observations  String?
+  createdAt     DateTime @default(now())
+
+  // Relacionamentos
+  recipe      Recipe       @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  rawMaterial RawMaterial? @relation(fields: [rawMaterialId], references: [id])
+  dye         Dye?         @relation(fields: [dyeId], references: [id])
+  chemical    Chemical?    @relation(fields: [chemicalId], references: [id])
+
+  @@map("recipe_items")
+}
+
+enum ItemType {
+  RAW_MATERIAL
+  DYE
+  CHEMICAL
+}
+
+enum ProcessStage {
+  PREPARATION
+  DYEING
+  WASHING
+  FINISHING
+}
+
+model RecipeProcess {
+  id           String       @id @default(cuid())
+  recipeId     String
+  stage        ProcessStage
+  stepOrder    Int
+  name         String
+  temperature  Float?
+  ph           Float?
+  time         Int // Tempo em minutos
+  description  String
+  observations String?
+  createdAt    DateTime     @default(now())
+
+  // Relacionamentos
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, stage, stepOrder])
+  @@map("recipe_processes")
+}
+
+// ===== MODELOS DE PRODUÇÃO =====
+
+model Order {
+  id              String   @id @default(cuid())
+  orderNumber     String   @unique
+  clientId        String
+  colorId         String
+  rawMaterialId   String
+  quantity        Float // Quantidade em metros ou kg
+  urgency         Priority @default(NORMAL)
+  deliveryDate    DateTime?
+  observations    String?
+  status          OrderStatus @default(PENDING)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relacionamentos
+  client        Client             @relation(fields: [clientId], references: [id])
+  color         Color              @relation(fields: [colorId], references: [id])
+  rawMaterial   RawMaterial        @relation(fields: [rawMaterialId], references: [id])
+  productions   ProductionRecord[]
+
+  @@map("orders")
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum OrderStatus {
+  PENDING
+  IN_PRODUCTION
+  QUALITY_CONTROL
+  FINISHED
+  DELIVERED
+  CANCELLED
+}
+
+model ProductionRecord {
+  id            String            @id @default(cuid())
+  batchNumber   String            @unique
+  orderId       String
+  recipeId      String
+  operatorId    String
+  startTime     DateTime
+  endTime       DateTime?
+  actualWeight  Float // Peso real do lote
+  status        ProductionStatus  @default(IN_PROGRESS)
+  observations  String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relacionamentos
+  order           Order              @relation(fields: [orderId], references: [id])
+  recipe          Recipe             @relation(fields: [recipeId], references: [id])
+  operator        User               @relation(fields: [operatorId], references: [id])
+  processSteps    ProductionStep[]
+  qualityControls QualityControl[]
+  stockMovements  StockMovement[]
+
+  @@map("production_records")
+}
+
+enum ProductionStatus {
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  ON_HOLD
+}
+
+model ProductionStep {
+  id               String       @id @default(cuid())
+  productionId     String
+  stage            ProcessStage
+  stepOrder        Int
+  startTime        DateTime
+  endTime          DateTime?
+  actualTemp       Float?
+  actualPh         Float?
+  actualTime       Int? // Tempo real em minutos
+  observations     String?
+  status           StepStatus   @default(PENDING)
+  createdAt        DateTime     @default(now())
+
+  // Relacionamentos
+  production ProductionRecord @relation(fields: [productionId], references: [id], onDelete: Cascade)
+
+  @@unique([productionId, stage, stepOrder])
+  @@map("production_steps")
+}
+
+enum StepStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+model QualityControl {
+  id             String   @id @default(cuid())
+  productionId   String
+  inspectorId    String
+  stage          ProcessStage
+  colorMatch     Boolean?
+  colorGrade     String? // A, B, C, D
+  defects        String?
+  approved       Boolean  @default(false)
+  observations   String?
+  photoUrl       String? // URL da foto do resultado
+  createdAt      DateTime @default(now())
+
+  // Relacionamentos
+  production ProductionRecord @relation(fields: [productionId], references: [id])
+  inspector  User             @relation(fields: [inspectorId], references: [id])
+
+  @@map("quality_controls")
+}
+
+// ===== MODELOS DE ESTOQUE =====
+
+model StockMovement {
+  id               String            @id @default(cuid())
+  type             MovementType
+  productionId     String?
+  rawMaterialId    String?
+  dyeId            String?
+  chemicalId       String?
+  quantity         Float
+  unit             String
+  unitPrice        Float?
+  totalPrice       Float?
+  reason           String?
+  documentNumber   String? // Nota fiscal, requisição, etc.
+  createdAt        DateTime          @default(now())
+
+  // Relacionamentos
+  production   ProductionRecord? @relation(fields: [productionId], references: [id])
+  rawMaterial  RawMaterial?      @relation(fields: [rawMaterialId], references: [id])
+  dye          Dye?              @relation(fields: [dyeId], references: [id])
+  chemical     Chemical?         @relation(fields: [chemicalId], references: [id])
+
+  @@map("stock_movements")
+}
+
+enum MovementType {
+  INPUT // Entrada
+  OUTPUT // Saída
+  ADJUSTMENT // Ajuste
+  LOSS // Perda
+}
+
+// ===== MODELOS DE CONFIGURAÇÃO =====
+
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_configs")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // CREATE, UPDATE, DELETE
+  table     String   // Nome da tabela
+  recordId  String   // ID do registro afetado
+  oldData   Json?    // Dados anteriores
+  newData   Json?    // Dados novos
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}

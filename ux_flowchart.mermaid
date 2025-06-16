@@ -1,0 +1,164 @@
+flowchart TD
+    A[Login] --> B{Tipo de Usuário?}
+    
+    B -->|Operador| C[Dashboard Operador]
+    B -->|Supervisor| D[Dashboard Supervisor]
+    B -->|Gerente| E[Dashboard Gerente]
+    
+    %% FLUXO DO OPERADOR
+    C --> C1[Ver Receituários Ativos]
+    C --> C2[Iniciar Produção]
+    C --> C3[Registrar Etapa]
+    
+    C1 --> C1A[Lista de Receitas]
+    C1A --> C1B[Detalhes da Receita]
+    C1B --> C1C[Visualizar Processo Gráfico]
+    C1C --> C1D[Imprimir Receita]
+    
+    C2 --> C2A[Escanear Código/Selecionar Lote]
+    C2A --> C2B[Confirmar Receita]
+    C2B --> C2C[Pesar Material]
+    C2C --> C2D[Iniciar Timer]
+    C2D --> C2E[Processo em Andamento]
+    
+    C3 --> C3A[Selecionar Etapa Atual]
+    C3A --> C3B[Registrar Parâmetros]
+    C3B --> C3C{Etapa OK?}
+    C3C -->|Sim| C3D[Próxima Etapa]
+    C3C -->|Não| C3E[Registrar Problema]
+    C3E --> C3F[Notificar Supervisor]
+    C3D --> C3G{Última Etapa?}
+    C3G -->|Não| C3A
+    C3G -->|Sim| C3H[Finalizar Produção]
+    
+    %% FLUXO DO SUPERVISOR
+    D --> D1[Gestão de Receitas]
+    D --> D2[Monitorar Produção]
+    D --> D3[Cadastros Base]
+    D --> D4[Controle de Qualidade]
+    
+    D1 --> D1A[Lista de Receitas]
+    D1A --> D1B[Criar Nova Receita]
+    D1A --> D1C[Editar Receita]
+    D1A --> D1D[Aprovar Receita]
+    
+    D1B --> D1B1[Selecionar Cliente]
+    D1B1 --> D1B2[Selecionar Cor]
+    D1B2 --> D1B3[Selecionar Matéria-Prima]
+    D1B3 --> D1B4[Definir Peso do Lote]
+    D1B4 --> D1B5[Adicionar Corantes]
+    D1B5 --> D1B6[Adicionar Químicos]
+    D1B6 --> D1B7[Definir Processos]
+    D1B7 --> D1B8[Visualizar Gráfico]
+    D1B8 --> D1B9[Calcular Custos]
+    D1B9 --> D1B10[Salvar Rascunho]
+    D1B10 --> D1B11[Enviar para Aprovação]
+    
+    D2 --> D2A[Painel de Produção em Tempo Real]
+    D2A --> D2B[Ver Detalhes do Lote]
+    D2B --> D2C[Acompanhar Etapas]
+    D2C --> D2D[Ver Alertas]
+    D2D --> D2E{Há Problemas?}
+    D2E -->|Sim| D2F[Intervir no Processo]
+    D2E -->|Não| D2G[Continuar Monitoramento]
+    
+    D3 --> D3A[Gestão de Clientes]
+    D3 --> D3B[Gestão de Cores]
+    D3 --> D3C[Gestão de Insumos]
+    D3 --> D3D[Gestão de Fornecedores]
+    
+    D3A --> D3A1[Lista de Clientes]
+    D3A1 --> D3A2[Criar/Editar Cliente]
+    D3A2 --> D3A3[Salvar]
+    
+    D3B --> D3B1[Lista de Cores]
+    D3B1 --> D3B2[Criar Nova Cor]
+    D3B2 --> D3B3[Definir Códigos Pantone/RGB]
+    D3B3 --> D3B4[Criar Fórmula Base]
+    D3B4 --> D3B5[Associar ao Cliente]
+    
+    D3C --> D3C1[Gestão de Matérias-Prima]
+    D3C --> D3C2[Gestão de Corantes]
+    D3C --> D3C3[Gestão de Químicos]
+    
+    D3C1 --> D3C1A[Lista de Materiais]
+    D3C1A --> D3C1B[Adicionar Material]
+    D3C1B --> D3C1C[Definir Estoque Mínimo]
+    D3C1C --> D3C1D[Configurar Alertas]
+    
+    D4 --> D4A[Inspeções Pendentes]
+    D4A --> D4B[Realizar Inspeção]
+    D4B --> D4C[Avaliar Cor]
+    D4C --> D4D[Registrar Defeitos]
+    D4D --> D4E[Fotografar Resultado]
+    D4E --> D4F{Aprovado?}
+    D4F -->|Sim| D4G[Liberar Lote]
+    D4F -->|Não| D4H[Solicitar Reprocesso]
+    
+    %% FLUXO DO GERENTE
+    E --> E1[Dashboard Executivo]
+    E --> E2[Relatórios e Analytics]
+    E --> E3[Configurações Avançadas]
+    E --> E4[Gestão de Usuários]
+    
+    E1 --> E1A[KPIs de Produção]
+    E1A --> E1B[Gráficos de Performance]
+    E1B --> E1C[Alertas Críticos]
+    E1C --> E1D[Resumo Financeiro]
+    
+    E2 --> E2A[Relatório de Custos]
+    E2A --> E2B[Relatório de Produtividade]
+    E2B --> E2C[Relatório de Qualidade]
+    E2C --> E2D[Análise de Insumos]
+    E2D --> E2E[Exportar Dados]
+    
+    E3 --> E3A[Configurar Parâmetros]
+    E3A --> E3B[Definir Alertas]
+    E3B --> E3C[Backup/Restore]
+    E3C --> E3D[Integrações]
+    
+    E4 --> E4A[Lista de Usuários]
+    E4A --> E4B[Criar/Editar Usuário]
+    E4B --> E4C[Definir Permissões]
+    E4C --> E4D[Ativar/Desativar]
+    
+    %% FLUXOS TRANSVERSAIS
+    C3H --> QC1[Controle de Qualidade]
+    D4G --> QC2[Produto Liberado]
+    D4H --> QC3[Reprocessar]
+    QC3 --> C2A
+    
+    %% NOTIFICAÇÕES E ALERTAS
+    C3F --> N1[Sistema de Notificações]
+    D2D --> N1
+    D3C1D --> N2[Alertas de Estoque]
+    N2 --> N1
+    
+    %% MOBILE RESPONSIVO
+    C --> M1[Interface Mobile/Tablet]
+    M1 --> M2[Scanner QR/Código]
+    M1 --> M3[Formulários Touch]
+    M1 --> M4[Timer Visual]
+    M1 --> M5[Captura de Fotos]
+    
+    %% INTEGRAÇÃO COM EQUIPAMENTOS
+    C2C --> I1[Integração Balança]
+    C3B --> I2[Sensores Temp/pH]
+    I1 --> I3[Dados Automáticos]
+    I2 --> I3
+    
+    %% BACKUP E SINCRONIZAÇÃO
+    D1B10 --> S1[Auto Save]
+    C3B --> S2[Sync em Tempo Real]
+    S1 --> S3[Backup Local]
+    S2 --> S3
+    
+    style A fill:#e1f5fe
+    style B fill:#fff3e0
+    style C fill:#e8f5e8
+    style D fill:#fff8e1
+    style E fill:#fce4ec
+    style N1 fill:#ffebee
+    style M1 fill:#f3e5f5
+    style I1 fill:#e0f2f1
+    style S1 fill:#fafafa
